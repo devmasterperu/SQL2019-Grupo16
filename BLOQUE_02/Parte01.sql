@@ -120,3 +120,96 @@ from   Zona
 --where  NOT(estado=1 and codubigeo=1) /*Se muestran solo aquellos con predicado VERDADERO*/
 where  NOT(estado=1) or NOT(codubigeo=1) /*Se muestran solo aquellos con predicado VERDADERO*/
 order by codzona asc
+
+--02.10
+
+--a
+select * from TipoDocumento where codtipo=3
+
+select IIF(codtipo=3,'RUC','OTRO TIPO') as TIPO_DOC, 
+       numdoc as NUM_DOC,
+	   razon_social as RAZON_SOCIAL,
+	   codzona as CODZONA,
+	   fec_inicio as FEC_INICIO
+from   Cliente
+--where  tipo_cliente='E' and (codzona=1 or codzona=3 or codzona=5 or codzona=7)
+where  tipo_cliente='E' and codzona IN (1,3,5,7) 
+order by razon_social desc
+
+--b
+select IIF(codtipo=3,'RUC','OTRO TIPO') as TIPO_DOC, 
+       numdoc as NUM_DOC,
+	   razon_social as RAZON_SOCIAL,
+	   codzona as CODZONA,
+	   fec_inicio as FEC_INICIO
+from   Cliente
+--where  tipo_cliente='E' and fec_inicio IN ('1998-01-01','1998-01-02'......) 
+where  tipo_cliente='E' and fec_inicio between '1998-01-01' and '1998-12-31'
+order by fec_inicio desc /*DESC(Más reciente al más antiguo)|ASC(Más antiguo al más reciente)*/
+
+--02.12
+select rtrim(ltrim('  DEV MASTER PERU  '))
+
+select IIF(codtipo=1,'LE o DNI','OTRO') as TIPO_DOC,
+       numdoc as NUM_DOC,
+	   concat(rtrim(ltrim(nombres)),' ',rtrim(ltrim(ape_paterno)),' ',rtrim(ltrim(ape_materno))) as CLIENTE
+from   Cliente
+where  tipo_cliente='P' and 
+--a.Nombre completo inicie en 'A' [nombres in ('ALBERTO','ANABEL','AMADO',......)]
+--concat(rtrim(ltrim(nombres)),' ',rtrim(ltrim(ape_paterno)),' ',rtrim(ltrim(ape_materno))) LIKE 'A%'
+--b.Nombre completo contiene la secuencia 'AMA' ['AMANDA','MAMANI','CAMA']
+--concat(rtrim(ltrim(nombres)),' ',rtrim(ltrim(ape_paterno)),' ',rtrim(ltrim(ape_materno))) LIKE '%AMA%'
+--c.Nombre completo finaliza en 'AN'('ROMAN').
+--concat(rtrim(ltrim(nombres)),' ',rtrim(ltrim(ape_paterno)),' ',rtrim(ltrim(ape_materno))) LIKE '%AN'
+--e.Nombre completo contenga la secuencia 'ARI' desde la 2° posición ([A-Z]ARI)
+--concat(rtrim(ltrim(nombres)),' ',rtrim(ltrim(ape_paterno)),' ',rtrim(ltrim(ape_materno))) LIKE '_ARI%'
+--f.Nombre completo tenga como antepenúltimo carácter la 'M' ('...M..).
+--concat(rtrim(ltrim(nombres)),' ',rtrim(ltrim(ape_paterno)),' ',rtrim(ltrim(ape_materno))) LIKE '%M__'
+--h.Nombre completo inicie y finalice con una vocal (a,e,i,o,u).
+--concat(rtrim(ltrim(nombres)),' ',rtrim(ltrim(ape_paterno)),' ',rtrim(ltrim(ape_materno))) LIKE '[aeiou]%[aeiou]'
+--i Nombre completo inicie y finalice con una consonante.
+--concat(rtrim(ltrim(nombres)),' ',rtrim(ltrim(ape_paterno)),' ',rtrim(ltrim(ape_materno))) LIKE '[^aeiou]%[^aeiou]'
+--j.Nombre inicie con una vocal y finalice con una consonante.
+concat(rtrim(ltrim(nombres)),' ',rtrim(ltrim(ape_paterno)),' ',rtrim(ltrim(ape_materno))) LIKE '[aeiou]%[^aeiou]'
+
+--02.13
+
+--SELECT: Solo Columnas GROUP BY | funciones agrupadoras
+select  codzona as ZONA,
+        estado as ESTADO,
+		count(codcliente) as TOT_CLIENTES,
+		min(fec_inicio)   as MIN_FEC_INICIO,
+		max(fec_inicio)   as MAX_FEC_INICIO,
+		case 
+			when count(codcliente) between 0 and 19 then 'TOTAL_INFERIOR'
+		    when count(codcliente) between 20 and 39 then 'TOTAL_MEDIO'
+			when count(codcliente)>=40 then 'TOTAL_SUPERIOR'
+		else 'SIN MENSAJE'
+		end as MENSAJE
+from Cliente
+where tipo_cliente='E'
+group by codzona,estado
+having count(codcliente)>10
+
+--02.15
+
+select  
+--Modificar el reporte para sólo mostrar las primeras 15 combinaciones con mayor número de total clientes
+        --top(15)      
+--Modificar el reporte para sólo mostrar el primer 15% de combinaciones con mayor número de total clientes=top(4)=15%*22=3.3=4
+        top(15) percent
+        estado as ESTADO,
+		codzona as ZONA,
+		count(codcliente)  as TOT_CLIENTES,
+		min(rtrim(ltrim(ape_paterno)))   as MIN_APE_PAT,
+		max(ltrim(rtrim(ape_paterno)))   as MAX_APE_PAT,
+		case 
+			when count(codcliente) between 0 and 14 then 'INFERIOR'
+		    when count(codcliente) between 15 and 29 then 'MEDIO'
+			when count(codcliente)>=30 then 'SUPERIOR'
+		else 'SIN MENSAJE'
+		end as MENSAJE
+from Cliente
+where tipo_cliente='P'
+group by estado,codzona
+order by TOT_CLIENTES desc
