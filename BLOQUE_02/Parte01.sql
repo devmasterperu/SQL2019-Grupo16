@@ -194,10 +194,16 @@ having count(codcliente)>10
 --02.15
 
 select  
---Modificar el reporte para sólo mostrar las primeras 15 combinaciones con mayor número de total clientes
-        --top(15)      
---Modificar el reporte para sólo mostrar el primer 15% de combinaciones con mayor número de total clientes=top(4)=15%*22=3.3=4
-        top(15) percent
+--NOTA 01.Modificar el reporte para sólo mostrar las primeras 15 combinaciones con mayor número de total clientes
+--top(15)      
+--NOTA 02.Modificar el reporte para sólo mostrar el primer 15% de combinaciones con mayor número de total clientes=top(4)=15%*22=3.3=4
+--top(15) percent
+--NOTA 03.Modificar el reporte para mostrar las primeras 15 combinaciones con mayor número de total clientes 
+--incluyendo aquellas con total de clientes igual a la posición 15
+--top(15) with ties
+--NOTA 04.Modificar el reporte para mostrar el primer 40% de combinaciones con mayor número de total clientes 
+--incluyendo aquellas con total de clientes igual a la última posición del primer 40%.
+--top(40) percent with ties --0.40*22=8.8=9
         estado as ESTADO,
 		codzona as ZONA,
 		count(codcliente)  as TOT_CLIENTES,
@@ -213,3 +219,23 @@ from Cliente
 where tipo_cliente='P'
 group by estado,codzona
 order by TOT_CLIENTES desc
+
+--02.17
+declare @tam_pag int=10,@num_pag int=60
+
+select codcliente as CODIGO, 
+	   concat(rtrim(ltrim(nombres)),' ',rtrim(ltrim(ape_paterno)),' ',rtrim(ltrim(ape_materno))) as NOMBRE_COMPLETO
+from   Cliente
+where  tipo_cliente='P'
+order by NOMBRE_COMPLETO asc
+--a.Página 1 y tamaño de página 10 [Posición 1 – 10].
+--offset 0 rows:tam_pag*(num_pag-1)
+--fetch next 10 rows only:tam_pag
+--b.Página 2 y tamaño de página 10 [Posición 11-20].
+--offset 10 rows:tam_pag*(num_pag-1)
+--fetch next 10 rows only:tam_pag
+--c.Página 3 y tamaño de página 10 [Posición 21-30].
+--offset 20 rows:tam_pag*(num_pag-1)
+--fetch next 10 rows only:tam_pag
+offset @tam_pag*(@num_pag-1) rows
+fetch next @tam_pag rows only
