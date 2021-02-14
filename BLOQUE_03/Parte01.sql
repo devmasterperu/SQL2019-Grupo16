@@ -70,3 +70,26 @@ select t.tipo as TIPO,t.numero as NUMERO,
 from Telefono t left join Cliente c on t.codcliente=c.codcliente and t.estado=1
 where t.estado=1 --609
 order by EMAIL desc
+
+--03.10
+--LEFT JOIN
+select c.codcliente as [CODIGO CLIENTE],isnull(p.nombre,'SIN DATO') as [NOMBRE PLAN],
+isnull(p.precioref,0.00) as [PRECIO PLAN],
+c.preciosol as [PRECIO CONTRATO],
+c.fec_contrato as [FECHA CONTRATO],
+c.codplan,
+p.codplan
+from Contrato c
+left join PlanInternet p on c.codplan=p.codplan
+order by p.nombre asc
+
+--RIGHT JOIN
+select c.codcliente as [CODIGO CLIENTE],isnull(p.nombre,'SIN DATO') as [NOMBRE PLAN],
+isnull(p.precioref,0.00) as [PRECIO PLAN],
+c.preciosol as [PRECIO CONTRATO],
+c.fec_contrato as [FECHA CONTRATO],
+c.codplan,
+p.codplan
+from PlanInternet p
+right join Contrato c on c.codplan=p.codplan
+order by p.nombre asc
