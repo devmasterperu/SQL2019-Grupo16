@@ -239,3 +239,4 @@ order by NOMBRE_COMPLETO asc
 --fetch next 10 rows only:tam_pag
 offset @tam_pag*(@num_pag-1) rows
 fetch next @tam_pag rows only
+
