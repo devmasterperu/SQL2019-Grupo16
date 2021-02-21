@@ -123,5 +123,5 @@ emp.title,
 emp.firstname+' '+emp.lastname as Employee,
 jef.firstname+' '+jef.lastname as Boss
 from HR.Employees emp
-left join HR.Employees jef on emp.mgrid=jef.empid
+inner join HR.Employees jef on emp.mgrid=jef.empid
 
