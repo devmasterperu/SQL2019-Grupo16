@@ -147,3 +147,81 @@ begin tran
 	inner join Ubigeo u on z.codubigeo=u.codubigeo
 	where u.cod_dpto='15' and u.cod_prov='08' and u.cod_dto='01'
 rollback
+
+--04.09
+select * from Cliente where codcliente=500
+
+begin tran
+	update Cliente
+	set   numdoc='46173386',
+	      nombres='DOMITILA CAMILA',
+		  ape_paterno='LOPEZ',
+		  ape_materno='MORALES',
+		  fec_nacimiento='1980-01-09',
+		  sexo='F',
+		  email='DOMITILA_LOPEZ@GMAIL.COM',
+		  direccion='URB. LOS CIPRESES M-24',
+		  codzona=2
+	output deleted.numdoc,inserted.numdoc,deleted.nombres,inserted.nombres,deleted.ape_paterno,inserted.ape_paterno,
+	       deleted.ape_materno,inserted.ape_materno
+	where codcliente=500
+rollback
+
+--04.11
+
+--Contratos 5% dscto.
+select co.* from Contrato co
+inner Join PlanInternet p on co.codplan=p.codplan
+where p.nombre in ('PLAN TOTAL I','PLAN TOTAL II','GOLD I','GOLD II','GOLD III','PREMIUM II') and co.periodo='Q'
+
+--Contratos 10% dscto.
+select co.* from Contrato co
+inner Join PlanInternet p on co.codplan=p.codplan
+where p.nombre in ('PLAN TOTAL I','PLAN TOTAL II','GOLD I','GOLD II','GOLD III','PREMIUM II') and co.periodo='M'
+
+alter table Contrato add precionuevo decimal(6,2)
+
+select * from Contrato
+
+--Calcular nuevo precio
+
+begin tran
+  update co
+  set  co.precionuevo=case when p.nombre in ('PLAN TOTAL I','PLAN TOTAL II','GOLD I','GOLD II','GOLD III','PREMIUM II') and co.periodo='Q'
+						   then 0.95*p.precioref
+						   when p.nombre in ('PLAN TOTAL I','PLAN TOTAL II','GOLD I','GOLD II','GOLD III','PREMIUM II') and co.periodo='M'
+						   then 0.90*p.precioref
+						   else 0.98*p.precioref
+					  end
+  output deleted.codcliente,deleted.codplan,deleted.precionuevo,inserted.precionuevo
+  from Contrato co
+  inner join PlanInternet p on co.codplan=p.codplan
+rollback
+
+--¿Quiénes son los clientes a los cuales no les conviene este nuevo precio?
+
+select case when c.tipo_cliente='E' then razon_social
+			when c.tipo_cliente='P' then c.nombres+' '+c.ape_paterno+' '+c.ape_materno
+			else 'SIN DETALLE'
+			end as CLIENTE,
+			p.nombre as [PLAN],
+			co.preciosol,
+			co.precionuevo
+from Contrato co
+left join Cliente c on co.codcliente=c.codcliente
+left join PlanInternet p on co.codplan=p.codplan
+where preciosol<precionuevo
+
+--¿Quiénes son los clientes detectados con un diferencial de S/50.00 a más entre el nuevo precio y el precio actual?
+select case when c.tipo_cliente='E' then razon_social
+			when c.tipo_cliente='P' then c.nombres+' '+c.ape_paterno+' '+c.ape_materno
+			else 'SIN DETALLE'
+			end as CLIENTE,
+			p.nombre as [PLAN],
+			co.preciosol,
+			co.precionuevo,
+			precionuevo-preciosol as diferencial
+from Contrato co
+left join Cliente c on co.codcliente=c.codcliente
+left join PlanInternet p on co.codplan=p.codplan
+where precionuevo-preciosol>=50
