@@ -101,3 +101,326 @@ left join cte_rp  as rp on p.codplan=rp.codplan
 order by [CO-TOTAL] desc
 
 --05.09
+
+--TABLAS_DERIVADAS
+
+select c.codcliente as [COD-CLIENTE],
+	   upper(rtrim(ltrim(nombres+' '+ape_paterno+' '+ape_materno))) as CLIENTE,
+	   isnull(rt.[tot-te],0) as [TOT-TE],
+	   isnull(rco.[tot-co],0) as [TOT-CO]
+from   Cliente c
+left join
+(
+select codcliente,count(*) as [tot-te]
+from Telefono
+where estado=1
+group by codcliente
+) rt on c.codcliente=rt.codcliente
+left join
+(
+select codcliente,count(*) as [tot-co]
+from Contrato
+where estado=1
+group by codcliente
+) rco on c.codcliente=rco.codcliente
+where  tipo_cliente='P'
+order by [TOT-TE] asc,[TOT-CO] asc
+
+--CTES
+
+with cte_rt as 
+(
+	select codcliente,count(*) as [tot-te]
+	from Telefono
+	where estado=1
+	group by codcliente
+),
+cte_rco as 
+(
+	select codcliente,count(*) as [tot-co]
+	from Contrato
+	where estado=1
+	group by codcliente
+)
+select c.codcliente as [COD-CLIENTE],
+	   upper(rtrim(ltrim(nombres+' '+ape_paterno+' '+ape_materno))) as CLIENTE,
+	   isnull(rt.[tot-te],0) as [TOT-TE],
+	   isnull(rco.[tot-co],0) as [TOT-CO]
+from   Cliente c
+left join cte_rt  as rt on c.codcliente=rt.codcliente
+left join cte_rco as rco on c.codcliente=rco.codcliente
+where  tipo_cliente='P'
+order by [TOT-TE] asc,[TOT-CO] asc
+
+--VISTAS
+
+--create view vw_clientes as
+alter view vw_clientes as
+with cte_rt as 
+(
+	select codcliente,count(*) as [tot-te]
+	from Telefono
+	where estado=1
+	group by codcliente
+),
+cte_rco as 
+(
+	select codcliente,count(*) as [tot-co]
+	from Contrato
+	where estado=1
+	group by codcliente
+)
+select c.codcliente as [COD-CLIENTE],
+       c.codzona as [COD-ZONA],
+	   upper(rtrim(ltrim(nombres+' '+ape_paterno+' '+ape_materno))) as CLIENTE,
+	   isnull(rt.[tot-te],0) as [TOT-TE],
+	   isnull(rco.[tot-co],0) as [TOT-CO],
+	   getdate() as [FEC-CONSULTA]
+from   Cliente c
+left join cte_rt  as rt on c.codcliente=rt.codcliente
+left join cte_rco as rco on c.codcliente=rco.codcliente
+where  tipo_cliente='P'
+
+select c.[CLIENTE],z.nombre 
+from vw_clientes c
+inner join Zona z on c.[COD-ZONA]=z.codzona
+order by [TOT-TE] asc,[TOT-CO] asc
+
+--FUNCION_VALOR_TABLA
+
+create function uf_cliente(@codcliente int) returns table as
+return
+	--declare @codcliente int=700;
+	with cte_rt as 
+	(
+		select codcliente,count(*) as [tot-te]
+		from Telefono
+		where estado=1
+		group by codcliente
+	),
+	cte_rco as 
+	(
+		select codcliente,count(*) as [tot-co]
+		from Contrato
+		where estado=1
+		group by codcliente
+	)
+	select c.codcliente as [COD-CLIENTE],
+		   c.codzona as [COD-ZONA],
+		   upper(rtrim(ltrim(nombres+' '+ape_paterno+' '+ape_materno))) as CLIENTE,
+		   isnull(rt.[tot-te],0) as [TOT-TE],
+		   isnull(rco.[tot-co],0) as [TOT-CO],
+		   getdate() as [FEC-CONSULTA]
+	from   Cliente c
+	left join cte_rt  as rt on c.codcliente=rt.codcliente
+	left join cte_rco as rco on c.codcliente=rco.codcliente
+	where  tipo_cliente='P' and c.codcliente=@codcliente;
+
+select * from uf_cliente(700)
+
+--FUNCION_VALOR_TABLA_DESDE_TD
+
+create function uf_cliente_v2(@codcliente int) returns table as
+return 
+	select c.codcliente as [COD-CLIENTE],
+		   upper(rtrim(ltrim(nombres+' '+ape_paterno+' '+ape_materno))) as CLIENTE,
+		   isnull(rt.[tot-te],0) as [TOT-TE],
+		   isnull(rco.[tot-co],0) as [TOT-CO]
+	from   Cliente c
+	left join
+	(
+	select codcliente,count(*) as [tot-te]
+	from Telefono
+	where estado=1
+	group by codcliente
+	) rt on c.codcliente=rt.codcliente
+	left join
+	(
+	select codcliente,count(*) as [tot-co]
+	from Contrato
+	where estado=1
+	group by codcliente
+	) rco on c.codcliente=rco.codcliente
+	where  tipo_cliente='P' and c.codcliente=@codcliente
+
+select * from uf_cliente_v2(700)
+
+--VISTA_DESDE_TD
+create view vw_clientes_v2 
+as
+select c.codcliente as [COD-CLIENTE],
+	upper(rtrim(ltrim(nombres+' '+ape_paterno+' '+ape_materno))) as CLIENTE,
+	isnull(rt.[tot-te],0) as [TOT-TE],
+	isnull(rco.[tot-co],0) as [TOT-CO]
+	from   Cliente c
+	left join
+	(
+	select codcliente,count(*) as [tot-te]
+	from Telefono
+	where estado=1
+	group by codcliente
+	) rt on c.codcliente=rt.codcliente
+	left join
+	(
+	select codcliente,count(*) as [tot-co]
+	from Contrato
+	where estado=1
+	group by codcliente
+	) rco on c.codcliente=rco.codcliente
+	where  tipo_cliente='P'
+
+select * from vw_clientes_v2
+
+--05.10
+
+--TOT-TE. # teléfonos. Mostrar 0 para valores desconocidos.
+--TOT-LLA. # teléfonos del tipo ‘LLA’. Mostrar 0 para valores desconocidos.
+--TOT-SMS. # teléfonos del tipo ‘SMS’. Mostrar 0 para valores desconocidos.
+--TOT-WSP. #teléfonos del tipo ‘WSP’. Mostrar 0 para valores desconocidos.
+
+--TOT-TE
+select codcliente,count(*) as total
+from Telefono
+group by codcliente
+
+--TOT-LLA
+select codcliente,count(*) as total
+from Telefono
+where tipo='LLA'
+group by codcliente
+
+--TOT-SMS
+select codcliente,count(*) as total
+from Telefono
+where tipo='SMS'
+group by codcliente
+
+--TOT-WSP
+select codcliente,count(*) as total
+from Telefono
+where tipo='WSP'
+group by codcliente
+
+--TABLAS_DERIVADAS
+
+select c.codcliente as CODIGO,razon_social as EMPRESA,
+isnull(rt.total,0) as [TOT-TE],
+isnull(rlla.total,0) as [TOT-LLA],
+isnull(rsms.total,0) as [TOT-SMS],
+isnull(rwsp.total,0) as [TOT-WSP]
+from  Cliente c
+left join 
+(
+	select codcliente,count(*) as total
+	from Telefono
+	group by codcliente
+) rt on c.codcliente=rt.codcliente 
+left join
+(
+	select codcliente,count(*) as total
+	from Telefono
+	where tipo='LLA'
+	group by codcliente
+) rlla on c.codcliente=rlla.codcliente
+left join
+(
+	select codcliente,count(*) as total
+	from Telefono
+	where tipo='SMS'
+	group by codcliente
+) rsms on c.codcliente=rsms.codcliente
+left join
+(
+	select codcliente,count(*) as total
+	from Telefono
+	where tipo='WSP'
+	group by codcliente
+) rwsp on c.codcliente=rwsp.codcliente
+where tipo_cliente='E'
+order by [TOT-TE] desc,[TOT-LLA] desc
+
+--CTES
+with cte_rt as 
+(
+	select codcliente,count(*) as total
+	from Telefono
+	group by codcliente
+),
+cte_lla as
+(
+	select codcliente,count(*) as total
+	from Telefono
+	where tipo='LLA'
+	group by codcliente
+),
+cte_sms as
+(
+	select codcliente,count(*) as total
+	from Telefono
+	where tipo='SMS'
+	group by codcliente
+),
+cte_wsp as
+(
+	select codcliente,count(*) as total
+	from Telefono
+	where tipo='WSP'
+	group by codcliente
+)
+select c.codcliente as CODIGO,razon_social as EMPRESA,
+isnull(rt.total,0) as [TOT-TE],
+isnull(rlla.total,0) as [TOT-LLA],
+isnull(rsms.total,0) as [TOT-SMS],
+isnull(rwsp.total,0) as [TOT-WSP]
+from  Cliente c
+left join cte_rt  as rt on c.codcliente=rt.codcliente 
+left join cte_lla as rlla on c.codcliente=rlla.codcliente
+left join cte_sms as rsms on c.codcliente=rsms.codcliente
+left join cte_wsp as rwsp on c.codcliente=rwsp.codcliente
+where tipo_cliente='E'
+order by [TOT-TE] desc,[TOT-LLA] desc
+
+--FUNCION_VALOR_TABLE
+alter function uf_cliente_empresa(@codcliente int) returns table as
+return
+	with cte_rt as 
+	(
+		select codcliente,count(*) as total
+		from Telefono
+		group by codcliente
+	),
+	cte_lla as
+	(
+		select codcliente,count(*) as total
+		from Telefono
+		where tipo='LLA'
+		group by codcliente
+	),
+	cte_sms as
+	(
+		select codcliente,count(*) as total
+		from Telefono
+		where tipo='SMS'
+		group by codcliente
+	),
+	cte_wsp as
+	(
+		select codcliente,count(*) as total
+		from Telefono
+		where tipo='WSP'
+		group by codcliente
+	)
+	select c.codcliente as CODIGO,razon_social as EMPRESA,
+	isnull(rt.total,0) as [TOT-TE],
+	isnull(rlla.total,0) as [TOT-LLA],
+	isnull(rsms.total,0) as [TOT-SMS],
+	isnull(rwsp.total,0) as [TOT-WSP]
+	from  Cliente c
+	left join cte_rt  as rt on c.codcliente=rt.codcliente 
+	left join cte_lla as rlla on c.codcliente=rlla.codcliente
+	left join cte_sms as rsms on c.codcliente=rsms.codcliente
+	left join cte_wsp as rwsp on c.codcliente=rwsp.codcliente
+	where tipo_cliente='E' and c.codcliente=@codcliente
+
+select * from uf_cliente_empresa(39)
+--order by [TOT-TE] desc,[TOT-LLA] desc
