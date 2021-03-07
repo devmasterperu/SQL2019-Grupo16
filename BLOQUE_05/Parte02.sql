@@ -424,3 +424,94 @@ return
 
 select * from uf_cliente_empresa(39)
 --order by [TOT-TE] desc,[TOT-LLA] desc
+
+--05.12
+
+--SUBCONSULTAS
+select coalesce(NULL,'DATO2',NULL,'DATO4')
+select eomonth(getdate())
+
+select coalesce(c.nombres+' '+c.ape_paterno+' '+c.ape_materno,c.razon_social,'SIN DATO') as CLIENTE,
+coalesce(p.nombre,'SIN DATO') as [PLAN],
+coalesce(co.fec_contrato,'9999-12-31') as FECHA,
+coalesce(co.preciosol,0.00) as PRECIO,
+cast(round((select avg(preciosol) from Contrato co where co.estado=1),2) as decimal(7,2)) as PROMEDIO,
+eomonth(getdate()) as F_CIERRE
+from Contrato co
+left join PlanInternet p on co.codplan=p.codplan
+left join Cliente c on co.codcliente=c.codcliente
+where co.preciosol>(
+					select avg(preciosol) 
+					from Contrato co
+					where co.estado=1
+				   )
+order by PRECIO desc
+
+--VISTAS
+create view vw_contratos as
+select coalesce(c.nombres+' '+c.ape_paterno+' '+c.ape_materno,c.razon_social,'SIN DATO') as CLIENTE,
+coalesce(p.nombre,'SIN DATO') as [PLAN],
+coalesce(co.fec_contrato,'9999-12-31') as FECHA,
+coalesce(co.preciosol,0.00) as PRECIO,
+cast(round((select avg(preciosol) from Contrato co where co.estado=1),2) as decimal(7,2)) as PROMEDIO,
+eomonth(getdate()) as F_CIERRE
+from Contrato co
+left join PlanInternet p on co.codplan=p.codplan
+left join Cliente c on co.codcliente=c.codcliente
+where co.preciosol>(
+					select avg(preciosol) 
+					from Contrato co
+					where co.estado=1
+				   )
+
+select * from vw_contratos
+order by PRECIO desc
+
+--FUNCION_VALOR_TABLA
+create function uf_contratos() returns table
+as
+return
+	select coalesce(c.nombres+' '+c.ape_paterno+' '+c.ape_materno,c.razon_social,'SIN DATO') as CLIENTE,
+	coalesce(p.nombre,'SIN DATO') as [PLAN],
+	coalesce(co.fec_contrato,'9999-12-31') as FECHA,
+	coalesce(co.preciosol,0.00) as PRECIO,
+	cast(round((select avg(preciosol) from Contrato co where co.estado=1),2) as decimal(7,2)) as PROMEDIO,
+	eomonth(getdate()) as F_CIERRE
+	from Contrato co
+	left join PlanInternet p on co.codplan=p.codplan
+	left join Cliente c on co.codcliente=c.codcliente
+	where co.preciosol>(
+						select avg(preciosol) 
+						from Contrato co
+						where co.estado=1
+					   )
+
+select * from uf_contratos()
+order by PRECIO desc
+
+--SUBCONSULTAS_HAVING
+
+--¿Cuales son los planes que tienen precioprom mayor al preciprom de todos los planes?
+
+--Preciprom de los planes
+select avg(precioprom) 
+from
+(
+	select codplan,avg(precionuevo) as precioprom
+	from Contrato
+	group by codplan
+) rp
+
+select codplan,avg(precionuevo) as precioprom
+from Contrato
+group by codplan
+having avg(precionuevo)>(
+							select avg(precioprom) 
+							from
+							(
+								select codplan,avg(precionuevo) as precioprom
+								from Contrato
+								group by codplan
+							) rp
+						)
+order by precioprom
